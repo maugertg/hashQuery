@@ -1,47 +1,53 @@
-import requests,sys,datetime,ConfigParser,os
+import os
+import sys
+import datetime
+import ipaddress
+import configparser
+import requests
+from IPy import IP
+
 start = str(datetime.datetime.now())[:-7]
 
 
 def sort_ip_list(ip_list):
     """Sort a list of IP address numerically"""
-    from IPy import IP
     return sorted(ip_list, 
       key=lambda ip:IP(ip).int())
 
 def print_sid_ips():
     """Print the SID followed by list of unique IP address 1 per line"""
     for SID in ip_addresses_by_sample:
-        print '\n',SID
+        print('\n',SID)
         for ip in ip_addresses_by_sample[SID]:
-            print ' ',ip
+            print(' ',ip)
 
 def print_sid_domains():
     """Print the SID followed by list of unique domains address 1 per line"""
     for SID in domains_by_sample:
-        print '\n',SID
+        print('\n',SID)
         for domain in sorted(domains_by_sample[SID]):
-            print ' ',domain
+            print(' ',domain)
 
 def print_sid_domains_ips():
     """Print the SID followed by list of unique ips and domains address 1 per line"""
     for SID in ip_addresses_by_sample:
-        print '\n',SID
+        print('\n',SID)
         for ip in ip_addresses_by_sample[SID]:
-            print ' ',ip
+            print(' ',ip)
         for domain in sorted(domains_by_sample[SID]):
-            print ' ',domain
+            print(' ',domain)
 
 def print_all_ips():
     """Print all of the IPs found"""
-    print '\nFound %d IP Addresses:' % len(ip_addresses)
+    print('\nFound %d IP Addresses:' % len(ip_addresses))
     for ip in sort_ip_list(ip_addresses):
-        print ' ',ip
+        print(' ',ip)
 
 def print_all_domains():
     """Print all of the domains found"""
-    print '\nFound %d domains:' % len(domains)
+    print('\nFound %d domains:' % len(domains))
     for domain in sorted(domains):
-        print ' ',domain
+        print(' ',domain)
 
 def write_sample_info ():
     """
@@ -63,7 +69,7 @@ def write_sample_info ():
         f.close()
 
 def print_count_over_threshold():
-    print '%s of the samples had a Threat Score greater than %s' % (len(sample_ids_scores),threashold)
+    print('%s of the samples had a Threat Score greater than %s' % (len(sample_ids_scores),threashold))
 
 def write_samples_over_threshold():
     with open('RESULTS/%s_%s_SIDS_over_%s.csv' % (intputFile_name, timestamp,threashold),'a') as checksumHit:
@@ -82,7 +88,7 @@ def write_samples_over_threshold_json():
 
 def get( query ):
     try:
-        r = requests.get(query)
+        r = session.get(query)
         if r.status_code // 100 != 2:
             return "Error: {}".format(r)
         return r.json()
@@ -103,7 +109,7 @@ def retry ( query, url ):
         # Write the error with time, error, and URL
         with open('Errors.txt','a') as f:
             f.write("{} {} - {}\n".format(start,query,url[trim:]))
-        print 'Error recieved retryining %s times' % retry_limit
+        print('Error recieved retryining %s times' % retry_limit)
         # Retry the same query
         query = get(url)
         retry_limit -= 1
@@ -140,7 +146,7 @@ def paginate ( url ):
 
 # Validate a list of hashes was provided as an argument
 if len(sys.argv) < 2:
-    sys.exit('Usage:\n %s hashList.txt' % sys.argv[0])
+    sys.exit('Usage:\n python %s hash_list.txt' % os.path.basename(__file__))
 
 inputFile = sys.argv[1]
 
@@ -152,14 +158,11 @@ if not os.path.isfile(str(inputFile)):
 configFile = 'api.cfg'
 
 # Reading the config file to get settings
-config = ConfigParser.RawConfigParser()
+config = configparser.RawConfigParser()
 config.read(configFile)
 
 api_key = config.get('Main', 'api_key')
-api_key = str.rstrip(api_key)
-
-hostName = config.get('Main', 'hostName')
-hostName = str.rstrip(hostName)
+host_name = config.get('Main', 'host_name')
 
 # Get the timestamp of when the script started
 timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
@@ -178,6 +181,8 @@ hashMatches = []
 JSON_output = {}
 threashold = 70
 
+session = requests.Session()
+
 # Create RESULTS directory if it does not exist
 if not os.path.exists('RESULTS'):
     os.makedirs('RESULTS')
@@ -191,15 +196,15 @@ with open(inputFile,'r') as inputList:
     line = 1
     for hash in inputList:
         hash = hash.strip()
-        urlSearch = 'https://{}/api/v2/search/submissions?q={}&api_key={}'.format(hostName,hash,api_key)
+        urlSearch = 'https://{}/api/v2/search/submissions?q={}&api_key={}'.format(host_name,hash,api_key)
         query = query_api(urlSearch)
         if query['data']['current_item_count'] is 0:
-            print 'Line %d of %d :-(' % (line,lines)
+            print('Line %d of %d :-(' % (line,lines))
             with open('RESULTS/%s_%s_miss.txt' % (intputFile_name, timestamp),'a') as checksumMiss:
                 checksumMiss.write('%s\n' % hash)
         else:
             JSON_output[hash] = {}
-            print 'Line %d of %d is a Winner! - %s' % (line,lines,hash)
+            print('Line %d of %d is a Winner! - %s' % (line,lines,hash))
             hashMatches.append(hash)
             with open('RESULTS/%s_%s_hits.txt' % (intputFile_name, timestamp),'a') as checksumHit:
                 checksumHit.write('%s\n' % hash)
@@ -211,10 +216,10 @@ with open(inputFile,'r') as inputList:
         line += 1
 
 # Print the number of hashes found
-print '\nFound %d out of %d hashes in the system' % (len(hashMatches),lines)
+print('\nFound %d out of %d hashes in the system' % (len(hashMatches),lines))
 
 # Print the number of samples found
-print '\nFound %d samples from %d hashes:' % (len(sample_ids),len(hashMatches))
+print('\nFound %d samples from %d hashes:' % (len(sample_ids),len(hashMatches)))
 
 # Query each Sample ID and get all of the IPs and Domains
 for hash in JSON_output:
@@ -222,7 +227,7 @@ for hash in JSON_output:
     for SID in JSON_output[hash]:
 
         #/api/v2/samples/SID/analysis/network_streams?api_key=API_KEY
-        urlNetworkStreams = 'https://{}/api/v2/samples/{}/analysis/network_streams?api_key={}'.format(hostName,SID,api_key)
+        urlNetworkStreams = 'https://{}/api/v2/samples/{}/analysis/network_streams?api_key={}'.format(host_name,SID,api_key)
         analysis_elements = query_api(urlNetworkStreams)
         network_streams = analysis_elements['data']['items']
 
@@ -231,10 +236,8 @@ for hash in JSON_output:
         for stream in network_streams:
             dst_port = network_streams[stream]['dst_port']
             current_ip = network_streams[stream]['dst']
-            current_ip_segmented = current_ip.split('.')
-            twooctets = current_ip_segmented[0]+current_ip_segmented[1]
-            # Verify traffic is not destined for the gateway(DNS), broacast or loopback. Add it to the list
-            if current_ip not in ['224.0.0.252', '169.254.255.255','255.255.255.255', '239.255.255.250'] and twooctets != '17216':
+            # Verify traffic is to a public IP and add it to the list
+            if IP(current_ip).iptype() == 'PUBLIC':
                 if current_ip not in ip_addresses:
                     ip_addresses.append(current_ip)
                     with open('RESULTS/%s_%s_ips.txt' % (current_hash, timestamp),'a') as ipFound:
