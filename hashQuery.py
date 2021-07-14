@@ -3,14 +3,10 @@ import sys
 
 import ipaddress
 import configparser
-import requests
 from IPy import IP
 
 from datetime import datetime
 from threatgrid import Threatgrid
-
-START = str(datetime.now())[:-7]
-
 
 def sort_ip_list(ip_list):
     """Sort a list of IP address numerically"""
@@ -100,13 +96,16 @@ def read_threat_grid_config(config_file = 'api.cfg'):
     return api_key, host_name
 
 
-def setup(start_timestamp):
+def setup(config_func):
     # Setup Threat Grid client
-    api_key, host_name = read_threat_grid_config()
-    return Threatgrid(host_name, api_key, start_timestamp)
+    api_key, host_name = config_func()
+    return Threatgrid(host_name, api_key)
 
 
 def main():
+    # Get the timestamp of when the script started and format the timestamp so it can be used in a file name
+    file_name_timestamp = datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
+
     # Validate a list of hashes was provided as an argument
     if len(sys.argv) < 2:
         sys.exit('Usage:\n python %s hash_list.txt' % os.path.basename(__file__))
@@ -117,13 +116,11 @@ def main():
     if not os.path.isfile(str(inputFile)):
         sys.exit ('File %s doesn\'t exist' % inputFile)
 
-    tg_client = setup(START)
-
-    # Get the timestamp of when the script started
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
-
     # Store the name of the file that contains the hashes
     intputFile_name = os.path.basename(inputFile)
+
+    # Setup Threat Grid API client
+    tg_client = setup(read_threat_grid_config)
 
     # Storage containers for ouput 
     sample_ids = []
@@ -150,20 +147,21 @@ def main():
         
         for hash in inputList:
             hash = hash.strip()
-            urlSearch = f'https://{tg_client.host}/api/v2/search/submissions?q={hash}&api_key={tg_client.api_key}'
+            search_submissions_url = f'https://{tg_client.host}/api/v2/search/submissions?q={hash}&api_key={tg_client.api_key}'
             
-            query = tg_client.query_api(urlSearch)
+            query = tg_client.query_api(search_submissions_url)
 
             if query['data']['current_item_count'] == 0:
                 print('Line %d of %d :-(' % (line,lines))
-                with open('RESULTS/%s_%s_miss.txt' % (intputFile_name, timestamp),'a') as checksumMiss:
+                with open('RESULTS/%s_%s_miss.txt' % (intputFile_name, file_name_timestamp),'a') as checksumMiss:
                     checksumMiss.write('%s\n' % hash)
             else:
                 JSON_output[hash] = {}
                 print('Line %d of %d is a Winner! - %s' % (line,lines,hash))
                 hashMatches.append(hash)
-                with open('RESULTS/%s_%s_hits.txt' % (intputFile_name, timestamp),'a') as checksumHit:
+                with open('RESULTS/%s_%s_hits.txt' % (intputFile_name, file_name_timestamp),'a') as checksumHit:
                     checksumHit.write('%s\n' % hash)
+
                 for i in query['data']['items']:
                     SID = i['item']['sample']
                     if SID not in sample_ids:
@@ -198,7 +196,7 @@ def main():
                 if IP(current_ip).iptype() == 'PUBLIC':
                     if current_ip not in ip_addresses:
                         ip_addresses.append(current_ip)
-                        with open('RESULTS/%s_%s_ips.txt' % (current_hash, timestamp),'a') as ipFound:
+                        with open('RESULTS/%s_%s_ips.txt' % (current_hash, file_name_timestamp),'a') as ipFound:
                             ipFound.write('%s\n' % current_ip)
 
                     if current_ip not in ip_addresses_by_sample[SID]:
@@ -213,7 +211,7 @@ def main():
                         if current_domain != 'workstation':
                             if current_domain not in domains and current_domain != 'time.windows.com':
                                 domains.append(current_domain)
-                                with open('RESULTS/%s_%s_domains.txt' % (current_hash, timestamp),'a') as domainFound:
+                                with open('RESULTS/%s_%s_domains.txt' % (current_hash, file_name_timestamp),'a') as domainFound:
                                     domainFound.write('%s\n' % current_domain)
                             if current_domain not in domains_by_sample[SID]:
                                 domains_by_sample[SID].append(current_domain)

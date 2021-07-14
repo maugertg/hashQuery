@@ -1,13 +1,14 @@
 import sys
 import requests
 
+from datetime import datetime
+
 class Threatgrid():
     
-    def __init__(self, host, api_key, start_timestamp) -> None:
+    def __init__(self, host, api_key) -> None:
         self.session = requests.Session()
         self.host = host
         self.api_key = api_key
-        self.start_timestamp = start_timestamp
 
     @staticmethod
     def errors(query: str) -> bool:
@@ -28,13 +29,14 @@ class Threatgrid():
             return 'Error Exception: {}'.format(e)
 
     def retry (self, query: str, url: str):
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # Check for errors and retry upto 3 times
         trim = 0
         retry_limit = 3
         while self.errors(query) == True and retry_limit > 0:
             # Write the error with time, error, and URL
             with open('Errors.txt','a') as f:
-                f.write("{} {} - {}\n".format(self.start_timestamp, query, url[trim:]))
+                f.write("{} {} - {}\n".format(timestamp, query, url[trim:]))
             print('Error recieved retryining %s times' % retry_limit)
             
             # Retry the same query
@@ -44,7 +46,7 @@ class Threatgrid():
             # Exit after retrying 3 times
             if retry_limit == 0:
                 with open('Errors.txt','a') as f:
-                    f.write("{} Error: Maximum Retry Reached - {}\n".format(self.start_timestamp, url[trim:]))
+                    f.write("{} Error: Maximum Retry Reached - {}\n".format(timestamp, url[trim:]))
                     sys.exit()
 
 
