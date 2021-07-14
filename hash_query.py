@@ -113,14 +113,14 @@ def main():
     if len(sys.argv) < 2:
         sys.exit('Usage:\n python %s hash_list.txt' % os.path.basename(__file__))
 
-    inputFile = sys.argv[1]
+    input_file = sys.argv[1]
 
     # Validate the provided list of hashes exists
-    if not os.path.isfile(str(inputFile)):
-        sys.exit ('File %s doesn\'t exist' % inputFile)
+    if not os.path.isfile(str(input_file)):
+        sys.exit ('File %s doesn\'t exist' % input_file)
 
     # Store the name of the file that contains the hashes
-    intputFile_name = os.path.basename(inputFile)
+    intputFile_name = os.path.basename(input_file)
 
     # Setup Threat Grid API client
     tg_client = setup(read_threat_grid_config)
@@ -140,18 +140,17 @@ def main():
     if not os.path.exists('RESULTS'):
         os.makedirs('RESULTS')
 
-    # Count number of lines in inputFile
-    with open(inputFile,'r') as inputList:
+    # Count number of lines in input_file
+    with open(input_file,'r') as inputList:
         lines = sum(1 for line in inputList)
 
     # Validate if each hash exists, if it does save all of the Sample IDs
-    with open(inputFile,'r') as inputList:
+    with open(input_file,'r') as inputList:
         line = 1
         
         for hash in inputList:
             hash = hash.strip()
             url_search_submissions = f'/search/submissions?q={hash}'
-            
             query = tg_client.query_api(url_search_submissions)
 
             if query['data']['current_item_count'] == 0:
@@ -168,6 +167,8 @@ def main():
                         sample_ids.append(SID)
                         JSON_output[hash][SID] = {'IPS': [], 'DOMAINS': [], 'THREATSCORE': 000}
             line += 1
+    
+
 
     # Print the number of hashes found
     print('\nFound %d out of %d hashes in the system' % (len(hash_matches),lines))
