@@ -132,7 +132,7 @@ def main():
     ip_addresses_by_sample = {}
     domains = []
     domains_by_sample = {}
-    hashMatches = []
+    hash_matches = []
     JSON_output = {}
     threashold = 70
 
@@ -160,7 +160,7 @@ def main():
             else:
                 JSON_output[hash] = {}
                 print('Line %d of %d is a Winner! - %s' % (line,lines,hash))
-                hashMatches.append(hash)
+                hash_matches.append(hash)
                 write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "hits", hash)
                 for i in query['data']['items']:
                     SID = i['item']['sample']
@@ -170,10 +170,10 @@ def main():
             line += 1
 
     # Print the number of hashes found
-    print('\nFound %d out of %d hashes in the system' % (len(hashMatches),lines))
+    print('\nFound %d out of %d hashes in the system' % (len(hash_matches),lines))
 
     # Print the number of samples found
-    print('\nFound %d samples from %d hashes:' % (len(sample_ids),len(hashMatches)))
+    print('\nFound %d samples from %d hashes:' % (len(sample_ids),len(hash_matches)))
 
     # Query each Sample ID and get all of the IPs and Domains
     for hash in JSON_output:
