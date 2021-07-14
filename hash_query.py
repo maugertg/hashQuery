@@ -141,14 +141,14 @@ def main():
         os.makedirs('RESULTS')
 
     # Count number of lines in input_file
-    with open(input_file,'r') as inputList:
-        lines = sum(1 for line in inputList)
+    with open(input_file,'r') as input_list:
+        lines = sum(1 for line in input_list)
 
     # Validate if each hash exists, if it does save all of the Sample IDs
-    with open(input_file,'r') as inputList:
+    with open(input_file,'r') as input_list:
         line = 1
         
-        for hash in inputList:
+        for hash in input_list:
             hash = hash.strip()
             url_search_submissions = f'/search/submissions?q={hash}'
             query = tg_client.query_api(url_search_submissions)
@@ -160,6 +160,7 @@ def main():
                 print('Line %d of %d is a Winner! - %s' % (line,lines,hash))
                 hash_matches.append(hash)
                 write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "hits", hash)
+
                 for i in query['data']['items']:
                     item = i.get('item', {})
                     SID = item['sample']
