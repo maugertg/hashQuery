@@ -89,6 +89,21 @@ def write_samples_over_threshold_json(JSON_output, intputFile_name, timestamp, t
                 f.write('%s,%s\n' % (SID,SCORE))
         f.close()
 
+def read_threat_grid_config(config_file = 'api.cfg'):
+    # Reading the config file to get settings
+    config = configparser.RawConfigParser()
+    config.read(config_file)
+
+    api_key = config.get('Main', 'api_key')
+    host_name = config.get('Main', 'host_name')
+
+    return api_key, host_name
+
+
+def setup(start_timestamp):
+    # Setup Threat Grid client
+    api_key, host_name = read_threat_grid_config()
+    return Threatgrid(host_name, api_key, start_timestamp)
 
 
 def main():
@@ -102,19 +117,7 @@ def main():
     if not os.path.isfile(str(inputFile)):
         sys.exit ('File %s doesn\'t exist' % inputFile)
 
-    # Specify the config file
-    configFile = 'api.cfg'
-
-    # Reading the config file to get settings
-    config = configparser.RawConfigParser()
-    config.read(configFile)
-
-    api_key = config.get('Main', 'api_key')
-    host_name = config.get('Main', 'host_name')
-
-    # Setup Threat Grid client
-
-    tg_client = Threatgrid(host_name, api_key, START)
+    tg_client = setup(START)
 
     # Get the timestamp of when the script started
     timestamp = datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
@@ -133,8 +136,6 @@ def main():
     JSON_output = {}
     threashold = 70
 
-    # session = requests.Session()
-
     # Create RESULTS directory if it does not exist
     if not os.path.exists('RESULTS'):
         os.makedirs('RESULTS')
@@ -149,7 +150,7 @@ def main():
         
         for hash in inputList:
             hash = hash.strip()
-            urlSearch = 'https://{}/api/v2/search/submissions?q={}&api_key={}'.format(host_name,hash,api_key)
+            urlSearch = f'https://{tg_client.host}/api/v2/search/submissions?q={hash}&api_key={tg_client.api_key}'
             
             query = tg_client.query_api(urlSearch)
 
@@ -182,7 +183,7 @@ def main():
         for SID in JSON_output[hash]:
 
             #/api/v2/samples/SID/analysis/network_streams?api_key=API_KEY
-            urlNetworkStreams = 'https://{}/api/v2/samples/{}/analysis/network_streams?api_key={}'.format(host_name,SID,api_key)
+            urlNetworkStreams = f'https://{tg_client.host}/api/v2/samples/{SID}/analysis/network_streams?api_key={tg_client.api_key}'
             analysis_elements = tg_client.query_api(urlNetworkStreams)
             network_streams = analysis_elements['data']['items']
 
