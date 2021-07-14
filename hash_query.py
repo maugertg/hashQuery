@@ -126,7 +126,7 @@ def main():
     tg_client = setup(read_threat_grid_config)
 
     # Storage containers for ouput 
-    sample_ids = []
+    sample_ids = set()
     sample_ids_scores = []
     ip_addresses = []
     ip_addresses_by_sample = {}
@@ -157,19 +157,17 @@ def main():
                 print('Line %d of %d :-(' % (line,lines))
                 write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "miss", hash)
             else:
-                JSON_output[hash] = {}
                 print('Line %d of %d is a Winner! - %s' % (line,lines,hash))
                 hash_matches.append(hash)
                 write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "hits", hash)
                 for i in query['data']['items']:
-                    SID = i['item']['sample']
-                    if SID not in sample_ids:
-                        sample_ids.append(SID)
-                        JSON_output[hash][SID] = {'IPS': [], 'DOMAINS': [], 'THREATSCORE': 000}
+                    item = i.get('item', {})
+                    SID = item['sample']
+                    threat_score = item.get('analysis', {}).get('threat_score', '000')
+                    sample_ids.add(SID)
+                    JSON_output.setdefault(hash, {}).setdefault(SID, {'IPS': [], 'DOMAINS': [], 'THREATSCORE': threat_score})
             line += 1
     
-
-
     # Print the number of hashes found
     print('\nFound %d out of %d hashes in the system' % (len(hash_matches),lines))
 
