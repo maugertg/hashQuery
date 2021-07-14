@@ -1,12 +1,15 @@
 import os
 import sys
-import datetime
+
 import ipaddress
 import configparser
 import requests
 from IPy import IP
 
-start = str(datetime.datetime.now())[:-7]
+from datetime import datetime
+from threatgrid import Threatgrid
+
+START = str(datetime.now())[:-7]
 
 
 def sort_ip_list(ip_list):
@@ -86,63 +89,7 @@ def write_samples_over_threshold_json(JSON_output, intputFile_name, timestamp, t
                 f.write('%s,%s\n' % (SID,SCORE))
         f.close()
 
-def get(session, query):
-    try:
-        r = session.get(query)
-        if r.status_code // 100 != 2:
-            return "Error: {}".format(r)
-        return r.json()
-    except requests.exceptions.RequestException as e:
-        return 'Error Exception: {}'.format(e)
 
-def errors( query ):
-    if type(query) == str and query[:5] == 'Error':
-        return True
-    else:
-        return False
-
-def retry ( query, url ):
-    # Check for errors and retry upto 3 times
-    trim = 0
-    retry_limit = 3
-    while errors(query) == True and retry_limit > 0:
-        # Write the error with time, error, and URL
-        with open('Errors.txt','a') as f:
-            f.write("{} {} - {}\n".format(start,query,url[trim:]))
-        print('Error recieved retryining %s times' % retry_limit)
-        # Retry the same query
-        query = get(url)
-        retry_limit -= 1
-        # Exit after retrying 3 times
-        if retry_limit == 0:
-            with open('Errors.txt','a') as f:
-                f.write("{} Error: Maximum Retry Reached - {}\n".format(start,url[trim:]))
-                sys.exit()
-
-def query_api (session, query ):
-    response = get(session, query)
-    retry(response, query)
-    return response
-
-def paginate ( url ):
-    # Container for results
-    results = []
-
-    # Setup parameters for pagination
-    limit = 100
-    returns = limit
-    offset = 0
-    total = 0
-
-    # Loop to page through the results if the number of results is greater than the limit
-    while returns >= limit:
-        pagination_params = '&offset={}&limit={}'.format(offset,limit)
-        query = query_api(url+pagination_params)
-        results.append(query)
-        returns = query['data']['current_item_count']
-        total += returns
-        offset += limit
-    return results
 
 def main():
     # Validate a list of hashes was provided as an argument
@@ -165,8 +112,12 @@ def main():
     api_key = config.get('Main', 'api_key')
     host_name = config.get('Main', 'host_name')
 
+    # Setup Threat Grid client
+
+    tg_client = Threatgrid(host_name, api_key, START)
+
     # Get the timestamp of when the script started
-    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
 
     # Store the name of the file that contains the hashes
     intputFile_name = os.path.basename(inputFile)
@@ -182,7 +133,7 @@ def main():
     JSON_output = {}
     threashold = 70
 
-    session = requests.Session()
+    # session = requests.Session()
 
     # Create RESULTS directory if it does not exist
     if not os.path.exists('RESULTS'):
@@ -200,7 +151,7 @@ def main():
             hash = hash.strip()
             urlSearch = 'https://{}/api/v2/search/submissions?q={}&api_key={}'.format(host_name,hash,api_key)
             
-            query = query_api(session, urlSearch)
+            query = tg_client.query_api(urlSearch)
 
             if query['data']['current_item_count'] == 0:
                 print('Line %d of %d :-(' % (line,lines))
@@ -232,7 +183,7 @@ def main():
 
             #/api/v2/samples/SID/analysis/network_streams?api_key=API_KEY
             urlNetworkStreams = 'https://{}/api/v2/samples/{}/analysis/network_streams?api_key={}'.format(host_name,SID,api_key)
-            analysis_elements = query_api(session, urlNetworkStreams)
+            analysis_elements = tg_client.query_api(urlNetworkStreams)
             network_streams = analysis_elements['data']['items']
 
             ip_addresses_by_sample[SID] = []
