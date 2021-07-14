@@ -150,7 +150,7 @@ def main():
         
         for hash in inputList:
             hash = hash.strip()
-            url_search_submissions = f'/search/submissions?q={hash}&api_key={tg_client.api_key}'
+            url_search_submissions = f'/search/submissions?q={hash}'
             
             query = tg_client.query_api(url_search_submissions)
 
@@ -181,7 +181,7 @@ def main():
         for SID in JSON_output[hash]:
 
             #/api/v2/samples/SID/analysis/network_streams?api_key=API_KEY
-            url_network_streams = f'/samples/{SID}/analysis/network_streams?api_key={tg_client.api_key}'
+            url_network_streams = f'/samples/{SID}/analysis/network_streams'
             analysis_elements = tg_client.query_api(url_network_streams)
             network_streams = analysis_elements['data']['items']
 

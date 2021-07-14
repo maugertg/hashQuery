@@ -23,22 +23,21 @@ class Threatgrid():
 
     def get(self, query: str) -> dict:
         try:
-            r = self.session.get(query)
-            if r.status_code // 100 != 2:
-                return "Error: {}".format(r)
-            return r.json()
+            response = self.session.get(query, json={'api_key': f'{self.api_key}'})
+            if response.status_code // 100 != 2:
+                return "Error: {}".format(response)
+            return response.json()
         except requests.exceptions.RequestException as e:
             return 'Error Exception: {}'.format(e)
 
     def retry (self, query: str, url: str):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # Check for errors and retry upto 3 times
-        trim = 0
         retry_limit = 3
         while self.errors(query) == True and retry_limit > 0:
             # Write the error with time, error, and URL
             with open('Errors.txt','a') as f:
-                f.write("{} {} - {}\n".format(timestamp, query, url[trim:]))
+                f.write("{} {} - {}\n".format(timestamp, query, url))
             print('Error recieved retryining %s times' % retry_limit)
             
             # Retry the same query
@@ -48,7 +47,7 @@ class Threatgrid():
             # Exit after retrying 3 times
             if retry_limit == 0:
                 with open('Errors.txt','a') as f:
-                    f.write("{} Error: Maximum Retry Reached - {}\n".format(timestamp, url[trim:]))
+                    f.write("{} Error: Maximum Retry Reached - {}\n".format(timestamp, url))
                     sys.exit()
 
 
