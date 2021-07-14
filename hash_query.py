@@ -150,9 +150,9 @@ def main():
         
         for hash in inputList:
             hash = hash.strip()
-            search_submissions_url = f'https://{tg_client.host}/api/v2/search/submissions?q={hash}&api_key={tg_client.api_key}'
+            url_search_submissions = f'/search/submissions?q={hash}&api_key={tg_client.api_key}'
             
-            query = tg_client.query_api(search_submissions_url)
+            query = tg_client.query_api(url_search_submissions)
 
             if query['data']['current_item_count'] == 0:
                 print('Line %d of %d :-(' % (line,lines))
@@ -181,8 +181,8 @@ def main():
         for SID in JSON_output[hash]:
 
             #/api/v2/samples/SID/analysis/network_streams?api_key=API_KEY
-            urlNetworkStreams = f'https://{tg_client.host}/api/v2/samples/{SID}/analysis/network_streams?api_key={tg_client.api_key}'
-            analysis_elements = tg_client.query_api(urlNetworkStreams)
+            url_network_streams = f'/samples/{SID}/analysis/network_streams?api_key={tg_client.api_key}'
+            analysis_elements = tg_client.query_api(url_network_streams)
             network_streams = analysis_elements['data']['items']
 
             ip_addresses_by_sample[SID] = []

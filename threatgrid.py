@@ -2,19 +2,21 @@ import sys
 import requests
 
 from datetime import datetime
+from urllib.parse import urljoin
 
 class Threatgrid():
     
     def __init__(self, host, api_key) -> None:
         self.session = requests.Session()
-        self.host = host
         self.api_key = api_key
+        self.base_url = f'https://{host}'
 
     @staticmethod
     def errors(query: str) -> bool:
         return bool(type(query) == str and query[:5] == 'Error')
 
     def query_api (self, query: str):
+        query = urljoin(self.base_url, '/api/v2'+query)
         response = self.get(query)
         self.retry(response, query)
         return response
