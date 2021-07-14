@@ -101,7 +101,10 @@ def setup(config_func):
     api_key, host_name = config_func()
     return Threatgrid(host_name, api_key)
 
-
+def write_hash_hit_or_miss(intput_file_name, file_name_timestamp, hit_or_miss, hash):
+    with open(f'RESULTS/{intput_file_name}_{file_name_timestamp}_{hit_or_miss}.txt', 'a') as file:
+        file.write(f'{hash}\n')
+    
 def main():
     # Get the timestamp of when the script started and format the timestamp so it can be used in a file name
     file_name_timestamp = datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
@@ -153,15 +156,12 @@ def main():
 
             if query['data']['current_item_count'] == 0:
                 print('Line %d of %d :-(' % (line,lines))
-                with open('RESULTS/%s_%s_miss.txt' % (intputFile_name, file_name_timestamp),'a') as checksumMiss:
-                    checksumMiss.write('%s\n' % hash)
+                write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "miss", hash)
             else:
                 JSON_output[hash] = {}
                 print('Line %d of %d is a Winner! - %s' % (line,lines,hash))
                 hashMatches.append(hash)
-                with open('RESULTS/%s_%s_hits.txt' % (intputFile_name, file_name_timestamp),'a') as checksumHit:
-                    checksumHit.write('%s\n' % hash)
-
+                write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "hits", hash)
                 for i in query['data']['items']:
                     SID = i['item']['sample']
                     if SID not in sample_ids:
