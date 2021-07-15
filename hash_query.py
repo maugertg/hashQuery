@@ -158,20 +158,20 @@ def main():
         url_search_submissions = f'/search/submissions?q={hash}'
         query = tg_client.query_api(url_search_submissions)
 
-        if query['data']['current_item_count'] == 0:
-            print('Line %d of %d :-(' % (line, lines))
+        if query.get('data', {}).get('current_item_count') == 0:
+            print(f'Line {line} of {lines} :-(')
             write_hash_hit_or_miss(intput_file_name, file_name_timestamp, "miss", hash)
         else:
-            print('Line %d of %d is a Winner! - %s' % (line, lines, hash))
+            print(f'Line {line} of {lines} is a Winner! - {hash}')
             hash_matches.append(hash)
             write_hash_hit_or_miss(intput_file_name, file_name_timestamp, "hits", hash)
 
-            for i in query['data']['items']:
-                item = i.get('item', {})
-                SID = item['sample']
+            for item in query.get('data', {}).get('items', []):
+                item = item.get('item', {})
+                sample_id = item.get('sample')
                 threat_score = item.get('analysis', {}).get('threat_score', '000')
-                sample_ids.add(SID)
-                JSON_output.setdefault(hash, {}).setdefault(SID, {'IPS': [], 'DOMAINS': [], 'THREATSCORE': threat_score})
+                sample_ids.add(sample_id)
+                JSON_output.setdefault(hash, {}).setdefault(sample_id, {'IPS': [], 'DOMAINS': [], 'THREATSCORE': threat_score})
 
     # Print the number of hashes found
     print('\nFound %d out of %d hashes in the system' % (len(hash_matches),lines))
