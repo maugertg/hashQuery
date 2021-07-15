@@ -70,14 +70,14 @@ def write_sample_info (JSON_output, timestamp):
 def print_count_over_threshold(sample_ids_scores, threashold):
     print('%s of the samples had a Threat Score greater than %s' % (len(sample_ids_scores),threashold))
 
-def write_samples_over_threshold(intputFile_name, timestamp, threashold, sample_ids_scores):
-    with open('RESULTS/%s_%s_SIDS_over_%s.csv' % (intputFile_name, timestamp, threashold),'a') as checksumHit:
+def write_samples_over_threshold(intput_file_name, timestamp, threashold, sample_ids_scores):
+    with open('RESULTS/%s_%s_SIDS_over_%s.csv' % (intput_file_name, timestamp, threashold),'a') as checksumHit:
         for tup in sample_ids_scores:
             checksumHit.write('%s,%s\n' % (tup[0],tup[1]))
 
-def write_samples_over_threshold_json(JSON_output, intputFile_name, timestamp, threashold):
+def write_samples_over_threshold_json(JSON_output, intput_file_name, timestamp, threashold):
     for hash in JSON_output:
-        f = open('RESULTS/%s_%s_SIDS_over_%s.csv' % (intputFile_name, timestamp, threashold),'a')
+        f = open('RESULTS/%s_%s_SIDS_over_%s.csv' % (intput_file_name, timestamp, threashold),'a')
         f.write('\n%s\n' % hash)
         for SID in JSON_output[hash]:
             SCORE = JSON_output[hash][SID]['THREATSCORE']
@@ -126,7 +126,7 @@ def main():
         sys.exit ('File %s doesn\'t exist' % input_file)
 
     # Store the name of the file that contains the hashes
-    intputFile_name = os.path.basename(input_file)
+    intput_file_name = os.path.basename(input_file)
 
     # Setup Threat Grid API client
     tg_client = setup(read_threat_grid_config)
@@ -159,12 +159,12 @@ def main():
         query = tg_client.query_api(url_search_submissions)
 
         if query['data']['current_item_count'] == 0:
-            print('Line %d of %d :-(' % (line,lines))
-            write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "miss", hash)
+            print('Line %d of %d :-(' % (line, lines))
+            write_hash_hit_or_miss(intput_file_name, file_name_timestamp, "miss", hash)
         else:
-            print('Line %d of %d is a Winner! - %s' % (line,lines,hash))
+            print('Line %d of %d is a Winner! - %s' % (line, lines, hash))
             hash_matches.append(hash)
-            write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "hits", hash)
+            write_hash_hit_or_miss(intput_file_name, file_name_timestamp, "hits", hash)
 
             for i in query['data']['items']:
                 item = i.get('item', {})
