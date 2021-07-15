@@ -104,7 +104,13 @@ def setup(config_func):
 def write_hash_hit_or_miss(intput_file_name, file_name_timestamp, hit_or_miss, hash):
     with open(f'RESULTS/{intput_file_name}_{file_name_timestamp}_{hit_or_miss}.txt', 'a') as file:
         file.write(f'{hash}\n')
-    
+
+def read_input_file(file_name):
+    with open(file_name, 'r') as f:
+        for line in f:
+            yield line.strip()
+
+
 def main():
     # Get the timestamp of when the script started and format the timestamp so it can be used in a file name
     file_name_timestamp = datetime.now().strftime("%Y-%m-%d_%H.%M.%S")
@@ -144,31 +150,29 @@ def main():
     with open(input_file,'r') as input_list:
         lines = sum(1 for line in input_list)
 
+    input_observables = read_input_file(input_file)
+
     # Validate if each hash exists, if it does save all of the Sample IDs
-    with open(input_file,'r') as input_list:
-        line = 1
-        
-        for hash in input_list:
-            hash = hash.strip()
-            url_search_submissions = f'/search/submissions?q={hash}'
-            query = tg_client.query_api(url_search_submissions)
+    for line, hash in enumerate(input_observables):
+        line = line + 1
+        url_search_submissions = f'/search/submissions?q={hash}'
+        query = tg_client.query_api(url_search_submissions)
 
-            if query['data']['current_item_count'] == 0:
-                print('Line %d of %d :-(' % (line,lines))
-                write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "miss", hash)
-            else:
-                print('Line %d of %d is a Winner! - %s' % (line,lines,hash))
-                hash_matches.append(hash)
-                write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "hits", hash)
+        if query['data']['current_item_count'] == 0:
+            print('Line %d of %d :-(' % (line,lines))
+            write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "miss", hash)
+        else:
+            print('Line %d of %d is a Winner! - %s' % (line,lines,hash))
+            hash_matches.append(hash)
+            write_hash_hit_or_miss(intputFile_name, file_name_timestamp, "hits", hash)
 
-                for i in query['data']['items']:
-                    item = i.get('item', {})
-                    SID = item['sample']
-                    threat_score = item.get('analysis', {}).get('threat_score', '000')
-                    sample_ids.add(SID)
-                    JSON_output.setdefault(hash, {}).setdefault(SID, {'IPS': [], 'DOMAINS': [], 'THREATSCORE': threat_score})
-            line += 1
-    
+            for i in query['data']['items']:
+                item = i.get('item', {})
+                SID = item['sample']
+                threat_score = item.get('analysis', {}).get('threat_score', '000')
+                sample_ids.add(SID)
+                JSON_output.setdefault(hash, {}).setdefault(SID, {'IPS': [], 'DOMAINS': [], 'THREATSCORE': threat_score})
+
     # Print the number of hashes found
     print('\nFound %d out of %d hashes in the system' % (len(hash_matches),lines))
 
