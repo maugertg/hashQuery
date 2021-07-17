@@ -96,10 +96,10 @@ def read_threat_grid_config(config_file = 'api.cfg'):
     return api_key, host_name
 
 
-def setup(config_func):
+def setup_client(sandbox, config_func):
     # Setup Threat Grid client
     api_key, host_name = config_func()
-    return Threatgrid(host_name, api_key)
+    return sandbox(host_name, api_key)
 
 def write_hash_hit_or_miss(intput_file_name, file_name_timestamp, hit_or_miss, hash):
     with open(f'RESULTS/{intput_file_name}_{file_name_timestamp}_{hit_or_miss}.txt', 'a') as file:
@@ -129,7 +129,7 @@ def main():
     intput_file_name = os.path.basename(input_file)
 
     # Setup Threat Grid API client
-    tg_client = setup(read_threat_grid_config)
+    tg_client = setup_client(Threatgrid, read_threat_grid_config)
 
     # Storage containers for ouput 
     sample_ids = set()
@@ -174,10 +174,10 @@ def main():
                 JSON_output.setdefault(hash, {}).setdefault(sample_id, {'IPS': [], 'DOMAINS': [], 'THREATSCORE': threat_score})
 
     # Print the number of hashes found
-    print('\nFound %d out of %d hashes in the system' % (len(hash_matches),lines))
+    print(f'\nFound {len(hash_matches)} out of {lines} hashes in the system')
 
     # Print the number of samples found
-    print('\nFound %d samples from %d hashes:' % (len(sample_ids),len(hash_matches)))
+    print(f'\nFound {len(sample_ids)} samples from {len(hash_matches)} hashes:')
 
     # Query each Sample ID and get all of the IPs and Domains
     for hash in JSON_output:
